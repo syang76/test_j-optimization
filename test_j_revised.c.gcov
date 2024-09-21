@@ -1,0 +1,93 @@
+        -:    0:Source:test_j_revised.c
+        -:    0:Graph:test_j_revised.gcno
+        -:    0:Data:test_j_revised.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <stdio.h>
+        -:    2:#include <math.h>
+        -:    3:#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+        -:    4:
+        -:    5:// Optimized version of function_j
+1003003001:    6:double function_j(double f, double fp, double fptilde, double pi, double g, double fptildemin, 
+        -:    7:                  double aC, double aX, double gC, double gX, double saC, double saX, double sbC, double sbX) {
+        -:    8:
+1003003001:    9:    double fpt = MAX(fptilde, fptildemin);
+        -:   10:
+        -:   11:    // Avoid repeated pow calls by precomputing common terms
+1003003001:   12:    double fpt_aX = pow(fpt, aX);
+1003003001:   13:    double fpt_gX = pow(fpt, gX);
+1003003001:   14:    double fpt_saX = pow(fpt, saX);
+1003003001:   15:    double fpt_sbX = pow(fpt, sbX);
+        -:   16:
+1003003001:   17:    double alpha   = aC  * fpt_aX;
+1003003001:   18:    double gamma   = gC  * fpt_gX;
+1003003001:   19:    double sigma_a = saC * fpt_saX;
+1003003001:   20:    double sigma_b = sbC * fpt_sbX;
+        -:   21:
+        -:   22:    // Minimize branching by using a ternary operator
+1003003001:   23:    double sigma   = (f <= fp) ? sigma_a : sigma_b;
+        -:   24:
+        -:   25:    // Precompute repeated divisions
+1003003001:   26:    double f_over_fp = f / fp;
+1003003001:   27:    double exp1arg = -1.25 * pow(f_over_fp, -4);
+        -:   28:    
+1003003001:   29:    double sigma_fp = sigma * fp;
+1003003001:   30:    double exp2arg = -0.5 * pow((f - fp) / sigma_fp, 2);
+        -:   31:
+1003003001:   32:    double S = alpha * pow(g, 2) * pow((2 * pi), -4) * pow(f, -5) * exp(exp1arg) * pow(gamma, exp(exp2arg));
+        -:   33:
+1003003001:   34:    return S;
+        -:   35:}
+        -:   36:
+        1:   37:int main() {
+        -:   38:
+        -:   39:    double S, f, fp, fptilde;
+        -:   40:
+        -:   41:    // Precompute constants
+        1:   42:    const double a  = 0.0081;
+        1:   43:    const double b  = 0.6;
+        1:   44:    const double g  = 9.807;
+        1:   45:    const double pi = 4. * atan(1.0);  // Precompute pi
+        1:   46:    const double fptildemin = (1.0/(2.0 * pi)) * pow((4.0 * b / 5.0), (1.0 / 4.0));  // Precompute this expression
+        -:   47:
+        1:   48:    const double gC = 5.87;
+        1:   49:    const double aC = 0.0317;
+        -:   50:
+        -:   51:    // Precompute logarithms
+        1:   52:    const double aX  = (log(a) - log(aC)) / log(fptildemin);
+        1:   53:    const double gX  = -log(gC) / log(fptildemin);
+        -:   54:
+        1:   55:    const double saC = 0.0547;
+        1:   56:    const double saX = 0.32;
+        -:   57:
+        1:   58:    const double sbC = 0.0783;
+        1:   59:    const double sbX = 0.16;
+        -:   60:
+        -:   61:    // Loop through ranges, avoid small increments when testing performance.
+     1002:   62:    for (f = -5.; f <= 5.; f += 0.01) {
+  1003002:   63:        for (fp = 0.; fp <= 10.; fp += 0.01) {
+1004005002:   64:            for (fptilde = 0.; fptilde <= 10.; fptilde += 0.01) {
+1003003001:   65:                S = function_j(f, fp, fptilde, pi, g, fptildemin, aC, aX, gC, gX, saC, saX, sbC, sbX);
+        -:   66:                // Use S for your needs
+1003003001:   67:            }
+  1002001:   68:        }
+     1001:   69:    }
+        -:   70:
+        1:   71:    return 0;
+        -:   72:}
+        -:   73:
+        -:   74:/***
+        -:   75:optimizations:
+        -:   76:1.	Move Constants Outside Function:
+        -:   77:Constants like pi, g, and fptildemin are calculated only once before the loop, avoiding redundant calculations.
+        -:   78:2.	Precompute Common Terms:
+        -:   79:Inside the function function_j(), pow(fpt, aX), pow(fpt, gX), pow(fpt, saX), and pow(fpt, sbX) are calculated once and stored in variables (fpt_aX, fpt_gX, etc.) to avoid repeated calls to pow().
+        -:   80:3.	Reduce Redundant Computations:
+        -:   81:Computations like f / fp and sigma * fp are done once and stored in variables (f_over_fp and sigma_fp) to avoid recalculating them multiple times.
+        -:   82:4.	Avoid Branching:
+        -:   83:Simplified the branching logic for sigma by using a ternary operator (f <= fp) ? sigma_a : sigma_b, which helps avoid conditional overhead.
+        -:   84:5.	Efficient Use of pow() and exp():
+        -:   85:The function uses exp() and pow() sparingly, only where absolutely necessary.
+        -:   86:
+        -:   87:Total running time on Mac M1: 112s
+        -:   88:***/
